@@ -1,3 +1,5 @@
+const fs = require('fs')
+const formidable = require('formidable')
 const signModel = require('../models/Sign')
 module.exports = app => {
     const express = require('express')
@@ -5,12 +7,58 @@ module.exports = app => {
     const jwt = require('jsonwebtoken')
     const bcrypt = require('bcrypt')
 
+    const bodyParser = require('body-parser')
+    app.use(bodyParser.json())
+    app.use(bodyParser.urlencoded({ extended: false }))
+
     const router = express.Router({
         mergeParams: true
     })
 
     // 创建资源
     router.post('/', async (req, res) => {
+        if (req.Model.modelName === 'Product') {
+            let Product = await req.Model;
+            // 创建上传表单对象
+            let form = new formidable.IncomingForm()
+            // 保留原有文件后缀
+            form.keepExtensions = true
+            // 解析上传表单对象
+            form.parse(req, (err, fields, files) => {
+                // 上传失败
+                if (err) return res.status(400).json({ error: '图片上传失败' })
+
+                // 创建产品
+                let product = new Product(fields)
+
+                // 1kb = 1000
+                // 1mb = 1000000
+
+                // 如果上传了图像
+                if (files.photo) {
+                    // 如果图像大小超过了 10mb
+                    if (files.photo.size > 10000000) {
+                        // 响应
+                        return res.status(400).json({ error: "图片大于了1mb" })
+                    }
+                    product.photo.data = fs.readFileSync(files.photo.path)
+                    product.photo.contentType = files.photo.type
+                }
+
+                // 将产品插入数据库
+                product.save((err, result) => {
+                    // 如果插入失败
+                    if (err) {
+                        // 响应错误
+                        return res.status(400).json({ error: errorHandler(err) })
+                    }
+                    // 响应产品
+                    res.json(result)
+                })
+
+            })
+            return;
+        }
         const model = await req.Model.create(req.body)
         res.send(model)
     })
@@ -56,7 +104,7 @@ module.exports = app => {
         // }
         try {
             assert(user, 422, '用户不存在')
-        } catch(e) {
+        } catch (e) {
             next(e)
         }
         // 2. 校验密码
@@ -67,7 +115,7 @@ module.exports = app => {
         // }
         try {
             assert(isValid, 422, '密码错误')
-        } catch(e) {
+        } catch (e) {
             next(e)
         }
         // 3. 返回token

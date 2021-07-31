@@ -1,10 +1,14 @@
 const express = require('express')
+const bodyParser = require("body-parser")
 const app = express()
 
 app.set('secret', 'qwertyuiop')
 
 app.use(require('cors')())
-app.use(express.json())
+// app.use(express.json())
+
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({ extended: true }))
 
 require('./plugins/db')(app)
 
