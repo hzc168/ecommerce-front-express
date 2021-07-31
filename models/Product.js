@@ -6,6 +6,8 @@ const schema = new mongoose.Schema({
     category: { type: mongoose.SchemaTypes.ObjectId, ref: 'Category' },
     quantity: { type: Number },
     shipping: { type: Number },
+    price: { type: Number },
+    createdAt: { type: String },
     photo: {
         data: Buffer,
         contentType: String

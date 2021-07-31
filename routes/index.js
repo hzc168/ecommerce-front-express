@@ -1,6 +1,7 @@
 const fs = require('fs')
 const formidable = require('formidable')
 const signModel = require('../models/Sign')
+const productModel = require('../models/Product')
 module.exports = app => {
     const express = require('express')
     const assert = require('http-assert')
@@ -79,6 +80,7 @@ module.exports = app => {
 
     // 资源列表
     router.get('/', async (req, res) => {
+        console.log(req.Model.modelName)
         const items = await req.Model.find()
         res.send(items)
     })
@@ -89,10 +91,39 @@ module.exports = app => {
         res.send(model)
     })
 
+
     // 中间件
     const authMiddleware = require('../middleware/auth')
     const resourceMiddleware = require('../middleware/resource')
     app.use('/api/reset/:resource', authMiddleware(), resourceMiddleware(), router)
+
+
+    // 获取商品图片
+    app.use('/api/products/photo/:id', async (req, res) => {
+        const { id } = req.params;
+        let data = await productModel.findOne({ _id: id })
+        res.set("Content-Type", data.photo.contentType)
+        return res.send(data.photo.data)
+    })
+
+    // 获取商品列表
+    app.use('/api/products', async (req, res) => {
+        const { order = "asc", sortBy = "_id", limit = '10' } = req.query
+        let allowOrderValue = ["desc", "asc"]
+        if (!allowOrderValue.includes(order))
+            return res.status(400).json({ message: "请检查升降序参数" })
+
+        productModel.find()
+            .select('-photo')
+            .populate('category')
+            .sort([[sortBy, order]])
+            .limit(parseInt(limit))
+            .exec((error, products) => {
+                if (error) return res.status(400).json({ message: "商品没有找到" })
+                res.json(products)
+            })
+    })
+
 
     app.use('/api/signin', async (req, res, next) => {
         const { email, password } = req.body
