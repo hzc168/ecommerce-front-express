@@ -10,7 +10,7 @@ const schema = new mongoose.Schema({
             return require('bcrypt').hashSync(val, 10)
         }
      },
-    message: { type: String },
+    role: { type: Number, default: 0 },
 })
 
 module.exports = mongoose.model('Sign', schema)
