@@ -1,6 +1,8 @@
 const express = require('express')
 const app = express()
 
+app.set('secret', 'qwertyuiop')
+
 app.use(require('cors')())
 app.use(express.json())
 
