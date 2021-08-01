@@ -106,6 +106,44 @@ module.exports = app => {
         return res.send(data.photo.data)
     })
 
+    // 过滤接口
+    app.use('/api/products/filter', async (req, res) => {
+        let order = req.body.order ? req.body.order : "desc"
+        let sortBy = req.body.sortBy ? req.body.sortBy : "_id"
+        let limit = req.body.limit ? parseInt(req.body.limit) : 4
+        let skip = parseInt(req.body.skip)
+        let findArgs = {}
+        let allowOrderValue = ["desc", "asc"]
+
+        if (!allowOrderValue.includes(order))
+            return res.status(400).json({ error: "请检查升降序参数" })
+
+        for (let key in req.body.filters) {
+            if (req.body.filters[key].length > 0) {
+                if (key === "price") {
+                    findArgs[key] = {
+                        $gte: req.body.filters[key][0],
+                        $lte: req.body.filters[key][1]
+                    }
+                } else {
+                    findArgs[key] = req.body.filters[key]
+                }
+            }
+        }
+
+        productModel.find(findArgs)
+            .select("-photo")
+            .populate("category")
+            .sort([[sortBy, order]])
+            .skip(skip)
+            .limit(limit)
+            .exec((err, data) => {
+                if (err) return res.status(400).json({ error: "暂无商品" })
+                res.json({ size: data.length, data })
+            })
+        return
+    })
+
     // 获取商品列表
     app.use('/api/products', async (req, res) => {
         const { order = "asc", sortBy = "_id", limit = '10' } = req.query
